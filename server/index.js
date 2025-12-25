@@ -1,7 +1,7 @@
 import express, { response } from "express";
 import "dotenv/config";
 import { rateLimit } from 'express-rate-limit';
-import { query, validationResult } from 'express-validator';
+import { body, matchedData, query, validationResult } from 'express-validator';
 
 const app = express();
 
@@ -37,14 +37,22 @@ app.get("/rate-limit-testing", limiter, (request, response) => {
 });
 
 
-app.get("/express-validator", query('person').notEmpty(), (request, response) => {
-    const result = validationResult(request);
-    if (result.isEmpty()) {
-        return response.send(`Hello, ${request.query.person}!`);
-    }
+app.get("/express-validator",
+    body('email').trim().isEmail().notEmpty(),
+    body('name').trim().notEmpty(),
+    (request, response) => {
+        const data = validationResult(request);
+        if (!data.isEmpty()) return response.status(400).json({message: "Bad Request, Validation error(s)", error: data.array() });
 
-    response.send({ errors: result.array() });
-});
+        const { name, email } = request.body;
+        
+        return response.status(200).json({
+            name: name,
+            email: email,
+            message: "Good request, valid details"
+        })
+    }
+);
 
 
 app.listen(port, () => {
